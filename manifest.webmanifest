@@ -1,0 +1,13 @@
+
+{
+  "id": "./",
+  "name": "Patience Studio",
+  "short_name": "Patience",
+  "description": "A modern interior design game made for Patience.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f5f0",
+  "theme_color": "#f6f5f0",
+  "orientation": "any"
+}
