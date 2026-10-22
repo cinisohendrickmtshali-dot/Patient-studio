@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f5f0">
+  <meta name="description" content="Patience Studio — a minimalist interior design game.">
+  <title>Patience Studio</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.webmanifest">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#">
+      <span class="logo">P.</span>
+      <span><strong>Patience Studio</strong><small>YOUR CREATIVE SPACE</small></span>
+    </a>
+    <span id="saveStatus">● Saved locally</span>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="heading">
+        <div><small class="eyebrow">WORKSPACE</small><h1>Your studio</h1></div>
+        <button id="newBtn" class="link">New project</button>
+      </div>
+
+      <label for="projectName">PROJECT NAME</label>
+      <input id="projectName" value="A space of your own" maxlength="50">
+
+      <div class="divider"></div>
+      <small class="eyebrow">TOOLS</small>
+      <div class="tools">
+        <button class="tool active" data-tool="select">↖ <span>Select</span></button>
+        <button class="tool" data-tool="draw">✎ <span>Sketch</span></button>
+        <button class="tool" data-tool="erase">⌫ <span>Eraser</span></button>
+        <button class="tool" data-tool="wall">／ <span>Wall</span></button>
+      </div>
+      <div class="row">
+        <button id="undoBtn" class="secondary" disabled>↶ Undo</button>
+        <button id="redoBtn" class="secondary" disabled>↷ Redo</button>
+      </div>
+
+      <div class="divider"></div>
+      <small class="eyebrow">FURNITURE · TAP TO ADD</small>
+      <div class="furniture">
+        <button data-item="sofa"><i class="sofa"></i>Sofa</button>
+        <button data-item="bed"><i class="bed"></i>Bed</button>
+        <button data-item="table"><i class="table"></i>Table</button>
+        <button data-item="chair"><i class="chair"></i>Chair</button>
+        <button data-item="plant"><i class="plant">✳</i>Plant</button>
+        <button data-item="rug"><i class="rug"></i>Rug</button>
+      </div>
+
+      <div class="divider"></div>
+      <small class="eyebrow">COLOUR STUDIO</small>
+      <div class="palette">
+        <button class="swatch selected" data-color="#e8e4db" style="--c:#e8e4db" aria-label="Linen"></button>
+        <button class="swatch" data-color="#c9d0c2" style="--c:#c9d0c2" aria-label="Sage"></button>
+        <button class="swatch" data-color="#c5b4a2" style="--c:#c5b4a2" aria-label="Sand"></button>
+        <button class="swatch" data-color="#aebdca" style="--c:#aebdca" aria-label="Mist blue"></button>
+        <button class="swatch" data-color="#d9b8ae" style="--c:#d9b8ae" aria-label="Clay"></button>
+        <button class="swatch" data-color="#343a35" style="--c:#343a35" aria-label="Charcoal"></button>
+        <input id="customColor" type="color" value="#c9d0c2" title="Custom colour">
+      </div>
+      <div class="row">
+        <button id="paintWall" class="secondary">Paint wall</button>
+        <button id="paintFloor" class="secondary">Paint floor</button>
+      </div>
+      <p class="note">Good spaces begin with ideas. Make this one yours.</p>
+    </aside>
+
+    <section class="editor">
+      <div class="editor-head">
+        <div><small class="eyebrow">YOUR PROJECT</small><h2 id="projectTitle">A space of your own</h2></div>
+        <div class="actions">
+          <button id="gridBtn" class="secondary">Grid: On</button>
+          <button id="challengeBtn" class="secondary">Design challenge</button>
+          <button id="exportBtn" class="primary">Export PNG ↗</button>
+        </div>
+      </div>
+
+      <div class="canvas-card">
+        <div class="canvas-label"><span>●</span> DESIGN CANVAS <span id="toolLabel">· Select and move</span></div>
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="canvas" width="1000" height="700" aria-label="Interior design canvas"></canvas>
+          <div class="hint" id="hint">
+            <span>＋</span><strong>Start with an idea</strong>
+            <small>Add furniture or choose Sketch to draw.</small>
+          </div>
+        </div>
+        <div class="canvas-footer"><span>Room plan · 1000 × 700</span><span>Designed for Patience · Made with love</span></div>
+      </div>
+
+      <section class="details">
+        <div class="heading"><div><small class="eyebrow">A LITTLE INSPIRATION</small><h2>Design your way</h2></div></div>
+        <div class="cards">
+          <article><b>01 / Sketch</b><p>Explore an idea before making it real.</p></article>
+          <article><b>02 / Arrange</b><p>Move furniture until the room feels right.</p></article>
+          <article><b>03 / Make it yours</b><p>Every beautiful space starts with you. ♡</p></article>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="challenge">
+    <button class="close" id="closeChallenge">×</button>
+    <small class="eyebrow">DESIGN CHALLENGE</small>
+    <h2>A calm reading corner</h2>
+    <p>Design a welcoming corner with a chair, a table or plant, and a colour that makes the space feel calm.</p>
+    <ul>
+      <li>Place at least two furniture items.</li>
+      <li>Experiment with a wall or floor finish.</li>
+      <li>Export your design to keep a copy.</li>
+    </ul>
+    <button class="primary" id="startChallenge">Let's design</button>
+  </dialog>
+
+  <div id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
