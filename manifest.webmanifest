@@ -1,13 +1,12 @@
 
 {
-  "id": "./",
-  "name": "Patience Studio",
-  "short_name": "Patience",
-  "description": "A modern interior design game made for Patience.",
-  "start_url": "./index.html",
+  "name": "Patience's Love Room",
+  "short_name": "Love Room",
+  "description": "A little romantic decorating game made with love for Patience.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f6f5f0",
-  "theme_color": "#f6f5f0",
-  "orientation": "any"
+  "orientation": "portrait",
+  "background_color": "#fff8f5",
+  "theme_color": "#fff0f4"
 }
