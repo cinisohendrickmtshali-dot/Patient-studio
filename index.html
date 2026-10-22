@@ -3,117 +3,122 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#fff0f4">
-  <title>Patience's Love Room 💗</title>
-  <meta name="description" content="A little romantic room decorating game made with love for Patience.">
-  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fff6f5">
+  <meta name="description" content="Patience Studio — a romantic interior design colouring game.">
+  <title>Patience Studio ♡</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
-  <header class="header">
-    <div class="logo">♡</div>
-    <div>
-      <h1>Patience's Love Room</h1>
-      <p>A little world made with love</p>
+  <header class="topbar">
+    <div class="brand-icon">♡</div>
+    <div class="brand">
+      <h1>Patience Studio</h1>
+      <p>Your little world of design</p>
     </div>
-    <div class="hearts">♥ <span id="hearts">0</span></div>
+    <button id="saveButton" class="save-button" type="button">Save ♡</button>
   </header>
 
   <main>
-    <section class="welcome">
-      <p class="eyebrow">YOUR LITTLE DREAM HOME</p>
-      <h2>Make it beautiful, <span>Patience.</span> 🌷</h2>
-      <p>Decorate a cosy room and collect little moments of love.</p>
+    <section class="intro">
+      <p class="eyebrow">A LITTLE SPACE TO CREATE</p>
+      <h2>Design something <span>beautiful.</span></h2>
+      <p>Choose a room, pick your colours and make it yours.</p>
     </section>
 
-    <section class="mission">
-      <div class="mission-icon" id="missionIcon">🛏️</div>
-      <div class="mission-content">
-        <p class="eyebrow" id="level">ROOM 1 OF 3</p>
-        <h2 id="missionTitle">A cosy beginning</h2>
-        <p id="missionText">Tap the decorations below to make your room lovely.</p>
-      </div>
-    </section>
-
-    <section class="room-card">
-      <div class="room-heading">
-        <span>♡ YOUR ROOM</span>
-        <span id="roomNumber">01</span>
-      </div>
-
-      <div class="room" id="room">
-        <div class="wall">
-          <div class="window">
-            <div></div><div></div>
-          </div>
-          <div class="picture">♡</div>
-          <div class="picture picture-two">🌷</div>
-        </div>
-        <div class="floor"></div>
-        <div class="decorations" id="decorations"></div>
-      </div>
-
-      <div class="room-footer">
-        <span id="roomMood">A blank room, full of possibilities.</span>
-        <button id="clearRoom" class="text-button" type="button">Start over</button>
-      </div>
-    </section>
-
-    <section class="decor-section">
-      <div class="section-title">
+    <section class="room-picker">
+      <div class="section-heading">
         <div>
-          <p class="eyebrow">PICK SOMETHING LOVELY</p>
-          <h2>Decorate your room</h2>
+          <p class="eyebrow">YOUR PROJECT</p>
+          <h2>Choose a room</h2>
         </div>
-        <span class="tiny-heart">♥</span>
+        <span class="room-count">04 ROOMS</span>
       </div>
-
-      <div class="decor-grid" id="decorGrid"></div>
+      <div class="room-options" id="roomOptions">
+        <button class="room-option active" data-room="bedroom" type="button">
+          <span>🛏️</span><strong>Bedroom</strong>
+        </button>
+        <button class="room-option" data-room="living" type="button">
+          <span>🛋️</span><strong>Living room</strong>
+        </button>
+        <button class="room-option" data-room="kitchen" type="button">
+          <span>🍽️</span><strong>Kitchen</strong>
+        </button>
+        <button class="room-option" data-room="bathroom" type="button">
+          <span>🛁</span><strong>Bathroom</strong>
+        </button>
+      </div>
     </section>
 
-    <section class="goal-card">
+    <section class="studio-card">
+      <div class="studio-top">
+        <div>
+          <p class="eyebrow">DESIGN CANVAS</p>
+          <h2 id="drawingTitle">The Dream Bedroom</h2>
+        </div>
+        <span class="live-dot">● LIVE</span>
+      </div>
+
+      <div class="canvas-wrap">
+        <div id="drawing" aria-label="Interactive interior design drawing"></div>
+      </div>
+
+      <div class="canvas-help">
+        <span class="tap-icon">✦</span>
+        <span id="helpText">Choose a colour, then tap any outlined surface.</span>
+      </div>
+
+      <div class="canvas-actions">
+        <button id="undoButton" class="secondary-button" type="button">↶ Undo</button>
+        <button id="resetButton" class="secondary-button" type="button">Reset room</button>
+        <button id="downloadButton" class="primary-button" type="button">↓ Download PNG</button>
+      </div>
+    </section>
+
+    <section class="palette-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">MAKE IT YOURS</p>
+          <h2>Colour palette</h2>
+        </div>
+        <div class="selected-colour" id="selectedColour">
+          <span id="selectedSwatch"></span>
+          <span id="selectedName">Rose pink</span>
+        </div>
+      </div>
+
+      <div class="palette" id="palette"></div>
+
+      <div class="custom-colour">
+        <label for="customColor">Choose any colour</label>
+        <input id="customColor" type="color" value="#e7a4b4" aria-label="Choose a custom colour">
+      </div>
+      <p class="hint">Tip: select a colour above, then tap the wall, floor or furniture in your drawing.</p>
+    </section>
+
+    <section class="design-note">
+      <div class="note-icon">♡</div>
       <div>
-        <p class="eyebrow">YOUR LITTLE GOAL</p>
-        <h2 id="goalTitle">Create a cosy bedroom</h2>
-        <p id="goalText">Add a bed, flowers and a heart decoration.</p>
-      </div>
-      <div class="progress">
-        <div class="progress-track"><div id="progressBar"></div></div>
-        <p id="progressText">0 of 3 decorations</p>
+        <p class="eyebrow">A LITTLE NOTE FOR PATIENCE</p>
+        <h2>There are no wrong colours.</h2>
+        <p>Every room begins with an idea. Experiment, be creative, and make a space that feels like you.</p>
       </div>
     </section>
 
-    <section class="message-card">
-      <div class="envelope">💌</div>
-      <p class="eyebrow">A LITTLE LOVE NOTE</p>
-      <h2 id="loveTitle">For you, Patience</h2>
-      <p id="loveMessage">Every beautiful thing begins with a little love. Keep creating your dream space. ♡</p>
-    </section>
-
-    <section class="next-section">
-      <button id="nextRoom" class="next-button" type="button" disabled>
-        Complete your room to continue ♡
-      </button>
-      <button id="resetGame" class="reset-button" type="button">Restart the game</button>
+    <section class="progress-card">
+      <div>
+        <p class="eyebrow">YOUR DESIGN JOURNEY</p>
+        <h2 id="progressTitle">One room at a time</h2>
+        <p id="progressText">0 of 4 rooms coloured</p>
+      </div>
+      <div class="progress-heart">♡</div>
     </section>
   </main>
 
   <footer>Made with love, just for Patience ♡</footer>
-
-  <div class="toast" id="toast" role="status"></div>
-
-  <div class="modal hidden" id="winModal" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <div class="big-heart">💗</div>
-      <p class="eyebrow">YOU DID IT!</p>
-      <h2 id="winTitle">Your room is beautiful!</h2>
-      <p id="winMessage">You made something special.</p>
-      <button id="winButton" class="next-button" type="button">Continue ♡</button>
-    </div>
-  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>
 </html>
-s
