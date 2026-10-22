@@ -1,557 +1,319 @@
 
 "use strict";
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
 const $ = id => document.getElementById(id);
-const KEY = "patience-studio-v1";
-const W = 1000, H = 700;
+const SAVE_KEY = "patience-love-room-v1";
 
-const state = {
-  tool: "select",
-  color: "#e8e4db",
-  wallColor: "#f1eee7",
-  floorColor: "#fbfaf7",
-  grid: true,
-  items: [],
-  strokes: [],
-  walls: [],
-  selected: null,
-  drawing: null,
-  wallStart: null,
-  drag: null,
-  history: [],
-  future: [],
-  nextId: 1
-};
+const items = [
+  { type: "bed", name: "Dream Bed", emoji: "🛏️" },
+  { type: "flowers", name: "Flowers", emoji: "💐" },
+  { type: "heart", name: "Heart Pillow", emoji: "💗" },
+  { type: "rug", name: "Soft Rug", emoji: "🟣" },
+  { type: "plant", name: "Little Plant", emoji: "🪴" },
+  { type: "lights", name: "Fairy Lights", emoji: "✨" },
+  { type: "sofa", name: "Cosy Sofa", emoji: "🛋️" },
+  { type: "candles", name: "Candles", emoji: "🕯️" },
+  { type: "teddy", name: "Teddy Bear", emoji: "🧸" }
+];
 
-function notify(message) {
-  const el = $("toast");
-  el.textContent = message;
-  el.classList.add("show");
-  clearTimeout(notify.timer);
-  notify.timer = setTimeout(() => el.classList.remove("show"), 2000);
-}
-
-function snapshot() {
-  return JSON.stringify({
-    items: state.items,
-    strokes: state.strokes,
-    walls: state.walls,
-    wallColor: state.wallColor,
-    floorColor: state.floorColor,
-    nextId: state.nextId
-  });
-}
-
-function remember() {
-  state.history.push(snapshot());
-  if (state.history.length > 40) state.history.shift();
-  state.future = [];
-  updateHistory();
-}
-
-function updateHistory() {
-  $("undoBtn").disabled = !state.history.length;
-  $("redoBtn").disabled = !state.future.length;
-}
-
-function restore(data) {
-  const s = JSON.parse(data);
-  state.items = s.items || [];
-  state.strokes = s.strokes || [];
-  state.walls = s.walls || [];
-  state.wallColor = s.wallColor || "#f1eee7";
-  state.floorColor = s.floorColor || "#fbfaf7";
-  state.nextId = s.nextId || 1;
-  state.selected = null;
-  render();
-  updateHistory();
-  save();
-}
-
-function undo() {
-  if (!state.history.length) return;
-  state.future.push(snapshot());
-  restore(state.history.pop());
-  notify("Undo");
-}
-
-function redo() {
-  if (!state.future.length) return;
-  state.history.push(snapshot());
-  restore(state.future.pop());
-  notify("Redo");
-}
-
-function save() {
-  const name = $("projectName").value.trim() || "Untitled project";
-  $("projectTitle").textContent = name;
-
-  const data = {
-    name,
-    items: state.items,
-    strokes: state.strokes,
-    walls: state.walls,
-    wallColor: state.wallColor,
-    floorColor: state.floorColor,
-    nextId: state.nextId
-  };
-
-  try {
-    localStorage.setItem(KEY, JSON.stringify(data));
-    $("saveStatus").textContent = "● Saved locally";
-  } catch (error) {
-    $("saveStatus").textContent = "Storage full";
-    notify("Storage full. Export your design to keep a copy.");
+const rooms = [
+  {
+    name: "A cosy beginning",
+    icon: "🛏️",
+    roomName: "Dream Bedroom",
+    description: "Make a sweet little bedroom with a few lovely decorations.",
+    goal: "Create a cosy bedroom",
+    goalText: "Add a bed, flowers and a heart decoration.",
+    required: ["bed", "flowers", "heart"],
+    messageTitle: "For you, Patience",
+    message: "Every beautiful thing begins with a little love. Keep creating your dream space. ♡"
+  },
+  {
+    name: "A little love lounge",
+    icon: "🛋️",
+    roomName: "The Cosy Lounge",
+    description: "Create a warm place to relax and dream.",
+    goal: "Make a lovely lounge",
+    goalText: "Add a sofa, a soft rug and a plant.",
+    required: ["sofa", "rug", "plant"],
+    messageTitle: "You deserve comfort",
+    message: "May your life always have a soft place to land, reasons to smile and love surrounding you. ♡"
+  },
+  {
+    name: "A romantic evening",
+    icon: "✨",
+    roomName: "Our Romantic Retreat",
+    description: "Add a little sparkle and make this room feel magical.",
+    goal: "Create a romantic retreat",
+    goalText: "Add fairy lights, flowers and candles.",
+    required: ["lights", "flowers", "candles"],
+    messageTitle: "A little surprise for you",
+    message: "If I could design a perfect place, I would fill it with warmth, laughter, beautiful dreams and moments that make you smile. This little room is for you, Patience. ♡"
   }
+];
+
+const positions = [
+  [50, 65], [27, 57], [70, 66], [50, 82], [83, 70],
+  [50, 23], [65, 67], [35, 71], [57, 59]
+];
+
+function freshState() {
+  return { room: 0, hearts: 0, completed: [], placed: [], seen: [] };
 }
 
 function load() {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return;
-    const d = JSON.parse(raw);
-
-    $("projectName").value = d.name || "A space of your own";
-    state.items = d.items || [];
-    state.strokes = d.strokes || [];
-    state.walls = d.walls || [];
-    state.wallColor = d.wallColor || state.wallColor;
-    state.floorColor = d.floorColor || state.floorColor;
-    state.nextId = d.nextId || 1;
-    $("projectTitle").textContent = $("projectName").value;
-  } catch (error) {
-    console.warn("Saved project could not be loaded", error);
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (!saved || typeof saved !== "object") return freshState();
+    return {
+      room: Math.max(0, Math.min(rooms.length - 1, Number(saved.room) || 0)),
+      hearts: Math.max(0, Number(saved.hearts) || 0),
+      completed: Array.isArray(saved.completed) ? saved.completed.filter(n => Number.isInteger(n) && n >= 0 && n < rooms.length) : [],
+      placed: Array.isArray(saved.placed) ? saved.placed.filter(x => x && items.some(i => i.type === x.type) && Number.isFinite(x.x) && Number.isFinite(x.y)) : [],
+      seen: Array.isArray(saved.seen) ? saved.seen.filter(n => Number.isInteger(n) && n >= 0 && n < rooms.length) : []
+    };
+  } catch {
+    return freshState();
   }
 }
 
-function roundedRect(x, y, w, h, r, fill, stroke) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-  if (fill) ctx.fill();
-  if (stroke) ctx.stroke();
+let state = load();
+let toastTimeout;
+let modalAction = null;
+
+function save() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch {
+    notify("Your browser couldn't save progress.");
+  }
 }
 
-function drawItem(o) {
-  const selected = o.id === state.selected;
-  ctx.save();
-  ctx.translate(o.x + o.w / 2, o.y + o.h / 2);
-  ctx.rotate((o.rotation || 0) * Math.PI / 180);
+function currentRoom() {
+  return rooms[state.room];
+}
 
-  const x = -o.w / 2, y = -o.h / 2;
-  const w = o.w, h = o.h;
-  ctx.fillStyle = o.color;
-  ctx.strokeStyle = "#879182";
-  ctx.lineWidth = 2;
+function itemInfo(type) {
+  return items.find(item => item.type === type);
+}
 
-  if (o.type === "sofa") {
-    roundedRect(x, y, w, h, 8, true, true);
-    ctx.beginPath();
-    ctx.moveTo(x + 5, y + h * .53);
-    ctx.lineTo(x + w - 5, y + h * .53);
-    ctx.moveTo(0, y + 4);
-    ctx.lineTo(0, y + h * .53);
-    ctx.stroke();
-  }
+function count(type) {
+  return state.placed.filter(item => item.type === type).length;
+}
 
-  if (o.type === "bed") {
-    ctx.strokeStyle = "#b5a38e";
-    roundedRect(x, y, w, h, 5, true, true);
-    ctx.fillStyle = "#fffefa";
-    roundedRect(x + 7, y + 7, w * .35, h * .17, 3, true, false);
-    roundedRect(x + w * .58, y + 7, w * .35, h * .17, 3, true, false);
-    ctx.beginPath();
-    ctx.moveTo(x + 4, y + h * .32);
-    ctx.lineTo(x + w - 4, y + h * .32);
-    ctx.stroke();
-  }
+function completedGoal() {
+  return currentRoom().required.every(type => count(type) > 0);
+}
 
-  if (o.type === "table") {
-    ctx.beginPath();
-    ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  if (o.type === "chair") {
-    roundedRect(x, y, w, h, 5, true, true);
-    ctx.beginPath();
-    ctx.moveTo(x + 4, y + h * .65);
-    ctx.lineTo(x + w - 4, y + h * .65);
-    ctx.stroke();
-  }
-
-  if (o.type === "plant") {
-    ctx.fillStyle = "#879b7e";
-    ctx.strokeStyle = "#6e8267";
-    ctx.beginPath();
-    ctx.arc(0, -h * .12, Math.min(w, h) * .26, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.ellipse(-w * .15, -h * .23, w * .14, h * .22, -.5, 0, Math.PI * 2);
-    ctx.ellipse(w * .15, -h * .25, w * .14, h * .22, .5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#c5b39c";
-    ctx.fillRect(-w * .18, h * .1, w * .36, h * .28);
-  }
-
-  if (o.type === "rug") {
-    ctx.strokeStyle = "#b5a592";
-    ctx.setLineDash([5, 4]);
-    roundedRect(x, y, w, h, 4, true, true);
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    ctx.moveTo(x + 10, y + h / 3);
-    ctx.lineTo(x + w - 10, y + h / 3);
-    ctx.moveTo(x + 10, y + h * 2 / 3);
-    ctx.lineTo(x + w - 10, y + h * 2 / 3);
-    ctx.stroke();
-  }
-
-  if (selected) {
-    ctx.strokeStyle = "#526b50";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 4]);
-    ctx.strokeRect(x - 5, y - 5, w + 10, h + 10);
-    ctx.setLineDash([]);
-    ctx.fillStyle = "#526b50";
-    ctx.fillRect(x + w - 5, y + h - 5, 10, 10);
-  }
-
-  ctx.restore();
+function notify(message) {
+  const toast = $("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => toast.classList.remove("show"), 2100);
 }
 
 function render() {
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = state.floorColor;
-  ctx.fillRect(0, 0, W, H);
+  $("hearts").textContent = state.hearts;
+  $("level").textContent = `ROOM ${state.room + 1} OF ${rooms.length}`;
+  $("roomNumber").textContent = String(state.room + 1).padStart(2, "0");
+  $("missionIcon").textContent = currentRoom().icon;
+  $("missionTitle").textContent = currentRoom().name;
+  $("missionText").textContent = currentRoom().description;
+  $("goalTitle").textContent = currentRoom().goal;
+  $("goalText").textContent = currentRoom().goalText;
+  $("loveTitle").textContent = currentRoom().messageTitle;
+  $("loveMessage").textContent = currentRoom().message;
 
-  if (state.grid) {
-    ctx.strokeStyle = "rgba(125,140,122,.13)";
-    ctx.lineWidth = 1;
-    for (let x = 0; x <= W; x += 25) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-    }
-    for (let y = 0; y <= H; y += 25) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-    }
-  }
+  renderDecorations();
+  renderShop();
+  renderProgress();
 
-  // Base room boundary
-  ctx.fillStyle = state.wallColor;
-  ctx.fillRect(95, 75, 810, 550);
-  ctx.strokeStyle = "#a9aea3";
-  ctx.lineWidth = 8;
-  ctx.strokeRect(95, 75, 810, 550);
-  ctx.strokeStyle = "#d5d7ce";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(107, 87, 786, 526);
+  const done = state.completed.includes(state.room);
+  const last = state.room === rooms.length - 1;
+  $("nextRoom").disabled = !done;
+  $("nextRoom").textContent = !done
+    ? "Complete your room to continue ♡"
+    : last ? "You've completed every room! ♡" : "Visit the next room →";
 
-  state.walls.forEach(w => {
-    ctx.strokeStyle = w.color;
-    ctx.lineWidth = w.width;
-    ctx.beginPath();
-    ctx.moveTo(w.x1, w.y1);
-    ctx.lineTo(w.x2, w.y2);
-    ctx.stroke();
+  $("roomMood").textContent = state.placed.length
+    ? "Looking lovely already! ♡"
+    : "A blank room, full of possibilities.";
+
+  save();
+}
+
+function renderDecorations() {
+  const container = $("decorations");
+  container.replaceChildren();
+
+  state.placed.forEach((placed, index) => {
+    const info = itemInfo(placed.type);
+    if (!info) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "decoration";
+    button.dataset.type = placed.type;
+    button.style.left = `${placed.x}%`;
+    button.style.top = `${placed.y}%`;
+    button.setAttribute("aria-label", `${info.name}. Tap to remove.`);
+    button.title = "Tap to remove this decoration";
+
+    const emoji = document.createElement("div");
+    emoji.className = "item-emoji";
+    emoji.textContent = info.emoji;
+    const label = document.createElement("span");
+    label.textContent = info.name;
+
+    button.append(emoji, label);
+    button.addEventListener("click", () => {
+      state.placed.splice(index, 1);
+      render();
+      notify(`${info.name} removed. Tap below to add it again.`);
+    });
+    container.append(button);
   });
+}
 
-  state.strokes.forEach(s => {
-    if (!s.points.length) return;
-    ctx.save();
-    ctx.strokeStyle = s.color;
-    ctx.lineWidth = s.width;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
-    ctx.beginPath();
-    ctx.moveTo(s.points[0].x, s.points[0].y);
-    s.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.stroke();
-    ctx.restore();
+function renderShop() {
+  const container = $("decorGrid");
+  container.replaceChildren();
+
+  items.forEach(info => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "decor-option";
+    button.setAttribute("aria-label", `Add ${info.name}`);
+
+    const emoji = document.createElement("span");
+    emoji.className = "emoji";
+    emoji.textContent = info.emoji;
+
+    const name = document.createElement("strong");
+    name.textContent = info.name;
+
+    const hint = document.createElement("small");
+    hint.textContent = "Tap to add ♡";
+
+    button.append(emoji, name, hint);
+    button.addEventListener("click", () => addItem(info.type));
+    container.append(button);
   });
-
-  state.items.forEach(drawItem);
-
-  $("hint").classList.toggle(
-    "hidden",
-    state.items.length + state.strokes.length + state.walls.length > 0
-  );
 }
 
-function pointFromEvent(e) {
-  const r = canvas.getBoundingClientRect();
-  return {
-    x: (e.clientX - r.left) * W / r.width,
-    y: (e.clientY - r.top) * H / r.height
-  };
-}
+function renderProgress() {
+  const required = currentRoom().required;
+  const done = required.filter(type => count(type) > 0).length;
+  $("progressBar").style.width = `${done / required.length * 100}%`;
+  $("progressText").textContent = `${done} of ${required.length} decorations`;
 
-function itemAt(p) {
-  for (let i = state.items.length - 1; i >= 0; i--) {
-    const o = state.items[i];
-    if (p.x >= o.x && p.x <= o.x + o.w &&
-        p.y >= o.y && p.y <= o.y + o.h) return o;
-  }
-  return null;
-}
-
-function setTool(tool) {
-  state.tool = tool;
-  document.querySelectorAll("[data-tool]").forEach(b =>
-    b.classList.toggle("active", b.dataset.tool === tool)
-  );
-  const labels = {
-    select: "· Select and move",
-    draw: "· Freehand sketch",
-    erase: "· Eraser",
-    wall: "· Draw walls"
-  };
-  $("toolLabel").textContent = labels[tool];
-  canvas.style.cursor = tool === "select" ? "default" : "crosshair";
+  const isComplete = done === required.length;
+  $("nextRoom").disabled = !isComplete && !state.completed.includes(state.room);
 }
 
 function addItem(type) {
-  const dimensions = {
-    sofa: [155, 78], bed: [145, 175], table: [86, 68],
-    chair: [70, 75], plant: [54, 60], rug: [190, 125]
-  };
-  remember();
-  const [w, h] = dimensions[type];
-  const item = {
-    id: state.nextId++, type,
-    x: W / 2 - w / 2, y: H / 2 - h / 2,
-    w, h, rotation: 0, color: state.color
-  };
-  state.items.push(item);
-  state.selected = item.id;
-  render();
-  save();
-  notify(type[0].toUpperCase() + type.slice(1) + " added");
-}
+  const info = itemInfo(type);
+  if (!info) return;
 
-let downPoint = null;
-
-canvas.addEventListener("pointerdown", e => {
-  e.preventDefault();
-  canvas.setPointerCapture(e.pointerId);
-  const p = pointFromEvent(e);
-  downPoint = p;
-
-  if (state.tool === "draw" || state.tool === "erase") {
-    remember();
-    state.drawing = {
-      points: [p],
-      color: state.color,
-      width: state.tool === "erase" ? 25 : 4,
-      erase: state.tool === "erase"
-    };
-    state.strokes.push(state.drawing);
-    render();
-    return;
+  if (state.completed.includes(state.room)) {
+    notify("This room is complete! You can still decorate it. ♡");
   }
 
-  if (state.tool === "wall") {
-    state.wallStart = p;
-    return;
-  }
-
-  const item = itemAt(p);
-  if (!item) {
-    state.selected = null;
-    state.drag = null;
-    render();
-    return;
-  }
-
-  state.selected = item.id;
-  remember();
-  state.drag = {
-    id: item.id, start: p, moved: false,
-    x: item.x, y: item.y, w: item.w, h: item.h,
-    resize: p.x > item.x + item.w - 13 && p.y > item.y + item.h - 13
-  };
-  render();
-});
-
-canvas.addEventListener("pointermove", e => {
-  const p = pointFromEvent(e);
-
-  if (state.drawing) {
-    state.drawing.points.push(p);
-    render();
-    return;
-  }
-
-  if (!state.drag) return;
-  const o = state.items.find(i => i.id === state.drag.id);
-  if (!o) return;
-
-  const dx = p.x - state.drag.start.x;
-  const dy = p.y - state.drag.start.y;
-  if (Math.abs(dx) + Math.abs(dy) > 2) state.drag.moved = true;
-
-  if (state.drag.resize) {
-    o.w = Math.max(35, state.drag.w + dx);
-    o.h = Math.max(35, state.drag.h + dy);
-  } else {
-    o.x = state.drag.x + dx;
-    o.y = state.drag.y + dy;
-  }
-  render();
-});
-
-function finishPointer(e) {
-  if (state.drawing) {
-    state.drawing = null;
-    save();
-    return;
-  }
-
-  if (state.wallStart) {
-    const p = pointFromEvent(e);
-    if (Math.hypot(p.x - state.wallStart.x, p.y - state.wallStart.y) > 8) {
-      remember();
-      state.walls.push({
-        x1: state.wallStart.x, y1: state.wallStart.y,
-        x2: p.x, y2: p.y, color: state.color, width: 6
-      });
-      save();
-    }
-    state.wallStart = null;
-    render();
-    return;
-  }
-
-  if (state.drag) {
-    if (state.drag.moved) save();
-    state.drag = null;
-  }
-}
-
-canvas.addEventListener("pointerup", finishPointer);
-canvas.addEventListener("pointercancel", finishPointer);
-
-document.querySelectorAll("[data-tool]").forEach(b =>
-  b.addEventListener("click", () => setTool(b.dataset.tool))
-);
-
-document.querySelectorAll("[data-item]").forEach(b =>
-  b.addEventListener("click", () => addItem(b.dataset.item))
-);
-
-document.querySelectorAll("[data-color]").forEach(b => {
-  b.addEventListener("click", () => {
-    state.color = b.dataset.color;
-    $("customColor").value = state.color;
-    document.querySelectorAll(".swatch").forEach(s =>
-      s.classList.toggle("selected", s === b)
-    );
-
-    const item = state.items.find(o => o.id === state.selected);
-    if (item) {
-      remember();
-      item.color = state.color;
-      render();
-      save();
-    }
+  const position = positions[state.placed.length % positions.length];
+  state.placed.push({
+    type,
+    x: position[0],
+    y: position[1]
   });
-});
 
-$("customColor").addEventListener("input", e => {
-  state.color = e.target.value;
-  document.querySelectorAll(".swatch").forEach(s => s.classList.remove("selected"));
-});
-
-$("paintWall").addEventListener("click", () => {
-  remember();
-  state.wallColor = state.color;
-  render(); save(); notify("Wall colour updated");
-});
-
-$("paintFloor").addEventListener("click", () => {
-  remember();
-  state.floorColor = state.color;
-  render(); save(); notify("Floor colour updated");
-});
-
-$("undoBtn").addEventListener("click", undo);
-$("redoBtn").addEventListener("click", redo);
-
-$("gridBtn").addEventListener("click", () => {
-  state.grid = !state.grid;
-  $("gridBtn").textContent = "Grid: " + (state.grid ? "On" : "Off");
-  $("canvasWrap").classList.toggle("no-grid", !state.grid);
   render();
-});
+  notify(`${info.emoji} ${info.name} added with love!`);
 
-$("projectName").addEventListener("input", save);
+  if (completedGoal() && !state.completed.includes(state.room)) {
+    completeRoom();
+  }
+}
 
-$("exportBtn").addEventListener("click", () => {
-  const previous = state.selected;
-  state.selected = null;
+function completeRoom() {
+  const roomIndex = state.room;
+  if (state.completed.includes(roomIndex)) return;
+
+  state.completed.push(roomIndex);
+  state.hearts += 3;
+  save();
   render();
-  const link = document.createElement("a");
-  link.download = ($("projectName").value || "patience-design")
-    .trim().replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-  state.selected = previous;
+
+  $("winTitle").textContent = roomIndex === rooms.length - 1
+    ? "You made every room lovely!"
+    : "Your room is beautiful!";
+
+  $("winMessage").textContent = roomIndex === rooms.length - 1
+    ? "You've completed all three rooms. Thank you for filling this little world with love. ♡"
+    : "You earned 3 hearts! Your next romantic room is ready whenever you are.";
+
+  $("winButton").textContent = roomIndex === rooms.length - 1
+    ? "Enjoy your dream home ♡"
+    : "Continue to the next room →";
+
+  modalAction = roomIndex < rooms.length - 1 ? "next" : "finish";
+  $("winModal").classList.remove("hidden");
+}
+
+function continueRoom() {
+  $("winModal").classList.add("hidden");
+
+  if (modalAction === "next" && state.room < rooms.length - 1) {
+    state.room += 1;
+    state.placed = [];
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    notify(`Welcome to ${currentRoom().roomName} ♡`);
+  } else {
+    render();
+    notify("Thank you for playing, Patience. Sending you a little love! 💗");
+  }
+  modalAction = null;
+}
+
+function clearRoom() {
+  if (!state.placed.length) {
+    notify("Your room is already empty.");
+    return;
+  }
+  state.placed = [];
   render();
-  notify("Design exported as PNG");
-});
+  notify("A fresh start. Let's decorate again! ♡");
+}
 
-$("newBtn").addEventListener("click", () => {
-  if (!confirm("Start a new design? Export your current design first if you want to keep an image.")) return;
-  remember();
-  state.items = [];
-  state.strokes = [];
-  state.walls = [];
-  state.selected = null;
-  state.wallColor = "#f1eee7";
-  state.floorColor = "#fbfaf7";
-  $("projectName").value = "Untitled interior";
-  save(); render(); notify("New design started");
-});
+function restartGame() {
+  if (!window.confirm("Start the whole game again? Your hearts and room progress will be reset.")) return;
+  state = freshState();
+  $("winModal").classList.add("hidden");
+  render();
+  notify("A new little love story begins. ♡");
+}
 
-$("challengeBtn").addEventListener("click", () => $("challenge").showModal());
-$("closeChallenge").addEventListener("click", () => $("challenge").close());
-$("startChallenge").addEventListener("click", () => {
-  $("challenge").close();
-  notify("Challenge: create a calm reading corner");
-});
-
-window.addEventListener("keydown", e => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-    e.preventDefault();
-    e.shiftKey ? redo() : undo();
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
-    e.preventDefault(); redo();
-  }
-  if ((e.key === "Delete" || e.key === "Backspace") && state.selected) {
-    remember();
-    state.items = state.items.filter(o => o.id !== state.selected);
-    state.selected = null;
-    render(); save(); notify("Furniture removed");
+$("clearRoom").addEventListener("click", clearRoom);
+$("nextRoom").addEventListener("click", () => {
+  if (state.completed.includes(state.room)) {
+    if (state.room < rooms.length - 1) {
+      state.room += 1;
+      state.placed = [];
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      notify("You completed every room. Beautifully done! ♡");
+    }
   }
 });
+$("resetGame").addEventListener("click", restartGame);
+$("winButton").addEventListener("click", continueRoom);
+
+render();
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(console.error);
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
   });
 }
-
-load();
-render();
-updateHistory();
